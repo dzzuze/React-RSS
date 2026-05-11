@@ -12606,7 +12606,7 @@ Error generating stack: ` +
     handleSearch = () => {
       let e = this.state.searchTerm.trim();
       e !== localStorage.getItem(`searchTermTemp`) &&
-        (localStorage.setItem(`searchTermTemp`, this.state.searchTerm),
+        (localStorage.setItem(`searchTermTemp`, this.state.searchTerm.trim()),
         this.props.onSearch(e));
     };
     render() {
