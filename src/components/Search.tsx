@@ -38,7 +38,7 @@ export default class Search extends Component<SearchProps, SearchState> {
     if (trimmed === localTemp) {
       return;
     } else {
-      localStorage.setItem('searchTermTemp', this.state.searchTerm);
+      localStorage.setItem('searchTermTemp', this.state.searchTerm.trim());
       this.props.onSearch(trimmed);
     }
   };
