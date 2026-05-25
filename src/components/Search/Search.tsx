@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import useLocalStorage from '../hooks/useLocalStorage';
+import useLocalStorage from '../../hooks/useLocalStorage';
 
 interface SearchProps {
   onSearch: (term: string) => void;
@@ -34,7 +34,7 @@ export default function Search({ onSearch }: SearchProps) {
       <input
         onChange={handleInputChange}
         value={inputValue}
-        className="border border-green-500 rounded px-3 py-2 flex-grow outline-none focus:ring-1 focus:ring-green-600 duration-300"
+        className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-green-500 rounded px-3 py-2 flex-grow outline-none focus:ring-1 focus:ring-green-600 duration-300"
       />
       <button
         onClick={handleSearch}
