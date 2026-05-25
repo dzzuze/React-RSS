@@ -11,7 +11,14 @@ describe('Results', () => {
   });
 
   test('the passed element is displayed with a name and description', () => {
-    const item = [{ name: 'Rick', description: 'Human', image: 'rick.jpg' }];
+    const item = [
+      {
+        id: 'test-id-1',
+        name: 'Rick',
+        description: 'Human',
+        image: 'rick.jpg',
+      },
+    ];
     render(<Results items={item} />);
 
     const name = screen.getByText('Rick');

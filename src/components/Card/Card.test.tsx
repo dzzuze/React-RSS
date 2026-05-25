@@ -3,7 +3,12 @@ import Card from './Card';
 
 describe('Card', () => {
   it('should show card with name, description and image props', () => {
-    const props = { name: 'Rick', description: 'Human', image: 'string' };
+    const props = {
+      id: 'test-id-1',
+      name: 'Rick',
+      description: 'Human',
+      image: 'string',
+    };
 
     render(<Card {...props} />);
 
