@@ -1,14 +1,15 @@
 import './index.css';
-import Search from './components/Search';
-import Results from './components/Results';
-import ErrorBoundary from './components/ErrorBoundary';
+import Search from './components/Search/Search';
+import Results from './components/Results/Results';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import { Routes, Route, Link } from 'react-router-dom';
-import About from './components/About';
-import NotFound from './components/NotFound';
+import About from './components/About/About';
+import NotFound from './components/NotFound/NotFound';
 import { useState } from 'react';
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useCallback } from 'react';
+import { useTheme } from './context/ThemeProvider';
 
 const Bomb = (): never => {
   throw new Error();
@@ -21,6 +22,7 @@ export default function App() {
   const [shouldThrow, setShouldThrow] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [totalPages, setTotalPages] = useState(1);
+  const { theme, toggleTheme } = useTheme();
 
   const currentPage = parseInt(searchParams.get('page') || '1');
 
@@ -46,10 +48,16 @@ export default function App() {
         const data = await response.json();
 
         const formatted = data.results.map(
-          (char: { name: string; species: string; image: string }) => ({
+          (char: {
+            name: string;
+            species: string;
+            image: string;
+            id: string;
+          }) => ({
             name: char.name,
             description: char.species,
             image: char.image,
+            id: char.id,
           })
         );
 
@@ -100,13 +108,21 @@ export default function App() {
       <Route
         path="/"
         element={
-          <div className="max-w-4xl mx-auto p-4 min-h-screen flex flex-col gap-4">
-            <Link
-              to="/about"
-              className="px-5 py-2.5 bg-gray-100 hover:bg-green-300 duration-300 text-gray-800 font-medium text-sm rounded-lg shadow-sm transition-all active:scale-95 inline-flex items-center justify-center w-max"
-            >
-              About
-            </Link>
+          <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors max-w-4xl mx-auto p-4 min-h-screen flex flex-col gap-4">
+            <div className="flex gap-2 items-center">
+              <button
+                onClick={toggleTheme}
+                className="px-5 py-2.5 bg-gray-100 hover:bg-green-300 duration-300 text-gray-800 font-medium text-sm rounded-lg shadow-sm transition-all active:scale-95 inline-flex items-center justify-center w-max"
+              >
+                {theme === 'light' ? '🌙' : '☀️'}
+              </button>
+              <Link
+                to="/about"
+                className="px-5 py-2.5 bg-gray-100 hover:bg-green-300 duration-300 text-gray-800 font-medium text-sm rounded-lg shadow-sm transition-all active:scale-95 inline-flex items-center justify-center w-max"
+              >
+                About
+              </Link>
+            </div>
             <Search onSearch={handleSearch} />
 
             <ErrorBoundary
