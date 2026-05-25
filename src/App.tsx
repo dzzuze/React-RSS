@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useCallback } from 'react';
-import { useTheme } from './context/ThemeProvider';
+import { useTheme } from './hooks/useTheme';
 
 const Bomb = (): never => {
   throw new Error();
