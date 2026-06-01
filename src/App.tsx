@@ -6,86 +6,60 @@ import { Routes, Route, Link } from 'react-router-dom';
 import About from './components/About/About';
 import NotFound from './components/NotFound/NotFound';
 import { useState } from 'react';
-import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useCallback } from 'react';
 import { useTheme } from './hooks/useTheme';
+import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Bomb = (): never => {
   throw new Error();
 };
 
 export default function App() {
-  const [results, setResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [shouldThrow, setShouldThrow] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [totalPages, setTotalPages] = useState(1);
   const { theme, toggleTheme } = useTheme();
 
   const currentPage = parseInt(searchParams.get('page') || '1');
 
-  const fetchCharacters = useCallback(
-    async (searchTerm?: string, page?: number) => {
-      const effectivePage = page ?? 1;
+  const queryClient = useQueryClient();
 
-      let baseURL = 'https://rickandmortyapi.com/api/character';
+  const [searchTerm, setSearchTerm] = useState<string>(() => {
+    const saved = localStorage.getItem('searchTermTemp');
+    return saved ? saved.trim() : '';
+  });
 
-      if (searchTerm && searchTerm != '') {
-        baseURL = `https://rickandmortyapi.com/api/character?name=${searchTerm}&page=${effectivePage}`;
-      } else {
-        baseURL = `https://rickandmortyapi.com/api/character?page=${effectivePage}`;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch(baseURL);
-        if (!response.ok) throw new Error('Failed to fetch characters');
-
-        const data = await response.json();
-
-        const formatted = data.results.map(
-          (char: {
-            name: string;
-            species: string;
-            image: string;
-            id: string;
-          }) => ({
-            name: char.name,
-            description: char.species,
-            image: char.image,
-            id: char.id,
-          })
-        );
-
-        setResults(formatted);
-        setTotalPages(data.info.pages);
-      } catch (error) {
-        const err = error as Error;
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['characters', currentPage, searchTerm],
+    queryFn: async () => {
+      const baseURL = 'https://rickandmortyapi.com/api/character';
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('name', searchTerm);
+      params.append('page', String(currentPage));
+      const response = await fetch(`${baseURL}?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to string');
+      return response.json();
     },
-    []
-  );
-
-  useEffect(() => {
-    const localTempApp: string | null = localStorage.getItem('searchTermTemp');
-    const searchTerm = localTempApp?.trim() || undefined;
-
-    const triggerFetch = async () => {
-      fetchCharacters(searchTerm, currentPage);
-    };
-
-    triggerFetch();
-  }, [currentPage, fetchCharacters]);
+    select: (responseData) => ({
+      items: responseData.results.map(
+        (char: {
+          name: string;
+          species: string;
+          image: string;
+          id: string;
+        }) => ({
+          name: char.name,
+          description: char.species,
+          image: char.image,
+          id: char.id,
+        })
+      ),
+      totalPages: responseData.info.pages,
+    }),
+  });
 
   const handleSearch = (searchTerm: string) => {
-    fetchCharacters(searchTerm, 1);
+    setSearchTerm(searchTerm);
     setSearchParams({ page: '1' });
   };
 
@@ -98,9 +72,9 @@ export default function App() {
   if (isLoading) {
     resultContent = <div>Loading...</div>;
   } else if (error) {
-    resultContent = <div>Error: {error}</div>;
+    resultContent = <div>Error: {error.message}</div>;
   } else {
-    resultContent = <Results items={results} />;
+    resultContent = <Results items={data?.items} />;
   }
 
   return (
@@ -141,7 +115,7 @@ export default function App() {
               <div>{resultContent}</div>
             </ErrorBoundary>
 
-            {!isLoading && !error && results.length > 0 && (
+            {!isLoading && !error && data?.items.length > 0 && (
               <div className="flex items-center justify-center gap-8 w-full mt-6">
                 <button
                   onClick={() =>
@@ -154,14 +128,14 @@ export default function App() {
                 </button>
 
                 <span className="inline-block px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full shadow-sm tracking-wide">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage} of {data?.totalPages ?? 1}
                 </span>
 
                 <button
                   onClick={() =>
                     setSearchParams({ page: String(currentPage + 1) })
                   }
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === data?.totalPages}
                   className="w-28 bg-green-500 text-[#0000000] px-4 py-2 rounded-lg hover:bg-green-300 cursor-pointer duration-300"
                 >
                   Next
@@ -169,12 +143,20 @@ export default function App() {
               </div>
             )}
 
-            <div className="flex justify-start mt-auto">
+            <div className="flex justify-start mt-auto gap-3">
               <button
                 onClick={handleErrorClick}
                 className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200 active:scale-95 flex items-center gap-2"
               >
                 Error click
+              </button>
+              <button
+                onClick={() =>
+                  queryClient.invalidateQueries({ queryKey: ['characters'] })
+                }
+                className="w-28 bg-green-500 text-[#0000000] px-4 py-2 rounded-lg hover:bg-green-300 cursor-pointer duration-300"
+              >
+                Refresh
               </button>
             </div>
           </div>
