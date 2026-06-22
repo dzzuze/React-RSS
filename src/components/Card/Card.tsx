@@ -1,4 +1,7 @@
+'use client';
+
 import { useSelectedStore } from '../../store/selectedStore';
+import Image from 'next/image';
 
 interface CardProps {
   name: string;
@@ -21,10 +24,12 @@ export default function Card({ name, description, image, id }: CardProps) {
         }}
         className="absolute top-3 left-3 w-5 h-5 cursor-pointer accent-blue-600"
       />
-      <img
+      <Image
         src={image}
         alt={name}
-        className="w-full h-40 object-contain rounded"
+        width={160}
+        height={160}
+        className="object-contain rounded"
       />{' '}
       <h3 className="text-lg font-bold">{name}</h3>
       <p className="text-sm text-gray-600">{description}</p>
