@@ -1,0 +1,169 @@
+import './index.css';
+import Search from './components/Search/Search';
+import Results from './components/Results/Results';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
+import { Routes, Route, Link } from 'react-router-dom';
+import About from './components/About/About';
+import NotFound from './components/NotFound/NotFound';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useTheme } from './hooks/useTheme';
+import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+
+const Bomb = (): never => {
+  throw new Error();
+};
+
+export default function App() {
+  const [shouldThrow, setShouldThrow] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { theme, toggleTheme } = useTheme();
+
+  const currentPage = parseInt(searchParams.get('page') || '1');
+
+  const queryClient = useQueryClient();
+
+  const [searchTerm, setSearchTerm] = useState<string>(() => {
+    const saved = localStorage.getItem('searchTermTemp');
+    return saved ? saved.trim() : '';
+  });
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['characters', currentPage, searchTerm],
+    queryFn: async () => {
+      const baseURL = 'https://rickandmortyapi.com/api/character';
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('name', searchTerm);
+      params.append('page', String(currentPage));
+      const response = await fetch(`${baseURL}?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to string');
+      return response.json();
+    },
+    select: (responseData) => ({
+      items: responseData.results.map(
+        (char: {
+          name: string;
+          species: string;
+          image: string;
+          id: string;
+        }) => ({
+          name: char.name,
+          description: char.species,
+          image: char.image,
+          id: char.id,
+        })
+      ),
+      totalPages: responseData.info.pages,
+    }),
+  });
+
+  const handleSearch = (searchTerm: string) => {
+    setSearchTerm(searchTerm);
+    setSearchParams({ page: '1' });
+  };
+
+  const handleErrorClick = () => {
+    setShouldThrow(true);
+  };
+
+  let resultContent;
+
+  if (isLoading) {
+    resultContent = <div>Loading...</div>;
+  } else if (error) {
+    resultContent = <div>Error: {error.message}</div>;
+  } else {
+    resultContent = <Results items={data?.items} />;
+  }
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors max-w-4xl mx-auto p-4 min-h-screen flex flex-col gap-4">
+            <div className="flex gap-2 items-center">
+              <button
+                onClick={toggleTheme}
+                className="px-5 py-2.5 bg-gray-100 hover:bg-green-300 duration-300 text-gray-800 font-medium text-sm rounded-lg shadow-sm transition-all active:scale-95 inline-flex items-center justify-center w-max"
+              >
+                {theme === 'light' ? '🌙' : '☀️'}
+              </button>
+              <Link
+                to="/about"
+                className="px-5 py-2.5 bg-gray-100 hover:bg-green-300 duration-300 text-gray-800 font-medium text-sm rounded-lg shadow-sm transition-all active:scale-95 inline-flex items-center justify-center w-max"
+              >
+                About
+              </Link>
+            </div>
+            <Search onSearch={handleSearch} />
+
+            <ErrorBoundary
+              fallback={
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl shadow-sm animate-fade-in">
+                  <div className="flex-1">
+                    <p className="text-xs text-red-600/90 mt-0.5">
+                      Error button clicked
+                    </p>
+                  </div>
+                </div>
+              }
+            >
+              {shouldThrow && <Bomb />}
+
+              <div>{resultContent}</div>
+            </ErrorBoundary>
+
+            {!isLoading && !error && data?.items.length > 0 && (
+              <div className="flex items-center justify-center gap-8 w-full mt-6">
+                <button
+                  onClick={() =>
+                    setSearchParams({ page: String(currentPage - 1) })
+                  }
+                  disabled={currentPage === 1}
+                  className="w-28 bg-green-500 text-[#0000000] px-4 py-2 rounded-lg hover:bg-green-300 cursor-pointer duration-300"
+                >
+                  Previous
+                </button>
+
+                <span className="inline-block px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full shadow-sm tracking-wide">
+                  Page {currentPage} of {data?.totalPages ?? 1}
+                </span>
+
+                <button
+                  onClick={() =>
+                    setSearchParams({ page: String(currentPage + 1) })
+                  }
+                  disabled={currentPage === data?.totalPages}
+                  className="w-28 bg-green-500 text-[#0000000] px-4 py-2 rounded-lg hover:bg-green-300 cursor-pointer duration-300"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+
+            <div className="flex justify-start mt-auto gap-3">
+              <button
+                onClick={handleErrorClick}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200 active:scale-95 flex items-center gap-2"
+              >
+                Error click
+              </button>
+              <button
+                onClick={() =>
+                  queryClient.invalidateQueries({ queryKey: ['characters'] })
+                }
+                className="w-28 bg-green-500 text-[#0000000] px-4 py-2 rounded-lg hover:bg-green-300 cursor-pointer duration-300"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        }
+      />
+      <Route path="/about" element={<About />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
